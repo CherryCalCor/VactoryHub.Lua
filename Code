@@ -1,3 +1,9 @@
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+task.wait(2.5) 
+
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
