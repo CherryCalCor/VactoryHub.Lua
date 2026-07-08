@@ -1,8 +1,3 @@
---[[
-    Vactory Hub - V0.1 (Merged Edition - Fixed)
-    Modern Minimalist UI + Grow A Garden 2 Features
-]]
-
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -13,7 +8,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Автоматическое определение инжектора
 local InjectorName = "Unknown"
 pcall(function() 
     if identifyexecutor then 
@@ -23,7 +17,6 @@ pcall(function()
     end 
 end)
 
--- Подключение сетевых пакетов игры
 local PacketFramework, Networking
 pcall(function()
     PacketFramework = require(ReplicatedStorage:WaitForChild("SharedModules"):WaitForChild("Packet"))
@@ -33,7 +26,6 @@ end)
 local TWEEN_INFO_FAST = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TWEEN_INFO_SMOOTH = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 
--- Цветовая палитра Vactory
 local Colors = {
     Background = Color3.fromRGB(15, 15, 15),
     Surface = Color3.fromRGB(22, 22, 22),
@@ -62,10 +54,6 @@ local VactoryGui = Create("ScreenGui", {
     IgnoreGuiInset = true
 })
 
---==============================
--- СОЗДАНИЕ ИНТЕРФЕЙСА
---==============================
-
 local MainFrame = Create("Frame", {
     Name = "MainFrame",
     Parent = VactoryGui,
@@ -93,7 +81,6 @@ local Shadow = Create("ImageLabel", {
     ZIndex = -1
 })
 
--- ИСПРАВЛЕНИЕ: Разделенный TopBar для правильного позиционирования кнопок
 local TopBar = Create("Frame", {
     Name = "TopBar",
     Parent = MainFrame,
@@ -101,7 +88,6 @@ local TopBar = Create("Frame", {
     BackgroundTransparency = 1
 })
 
--- Левая часть (Заголовок и версия)
 local TitleContainer = Create("Frame", {
     Name = "TitleContainer",
     Parent = TopBar,
@@ -149,7 +135,6 @@ Create("TextLabel", {
     TextSize = 11
 })
 
--- ИСПРАВЛЕНИЕ: Правая часть (Кнопки жестко прижаты к правому краю)
 local Controls = Create("Frame", {
     Name = "Controls",
     Parent = TopBar,
@@ -189,7 +174,6 @@ local function CreateControlButton(name, text, layoutOrder)
     return btn
 end
 
--- Порядок: Сначала Сворачивание (1), затем Закрытие (2)
 local MinimizeBtn = CreateControlButton("MinimizeBtn", "—", 1)
 local CloseBtn = CreateControlButton("CloseBtn", "×", 2)
 
@@ -223,11 +207,6 @@ local TabContainer = Create("Frame", {
 })
 Create("UIPadding", { Parent = TabContainer, PaddingTop = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), PaddingBottom = UDim.new(0, 15) })
 
---=========================================
--- ИСПРАВЛЕННЫЕ ШАБЛОНЫ КОМПОНЕНТОВ
---=========================================
-
--- ИСПРАВЛЕНИЕ: GitHub-style переключатель с видимой оболочкой
 local function CreateGitHubToggle(parent, text, defaultState, callback)
     local row = Create("Frame", {
         Size = UDim2.new(1, 0, 0, 36),
@@ -246,7 +225,6 @@ local function CreateGitHubToggle(parent, text, defaultState, callback)
         TextXAlignment = Enum.TextXAlignment.Left
     })
 
-    -- Явная оболочка переключателя (фон)
     local switchShell = Create("Frame", {
         Parent = row,
         AnchorPoint = Vector2.new(1, 0.5),
@@ -265,7 +243,6 @@ local function CreateGitHubToggle(parent, text, defaultState, callback)
     })
     Create("UICorner", { Parent = knob, CornerRadius = UDim.new(0, 4) })
 
-    -- Кнопка поверх оболочки для регистрации кликов
     local clickArea = Create("TextButton", {
         Parent = switchShell,
         Size = UDim2.new(1, 0, 1, 0),
@@ -290,7 +267,6 @@ local function CreateGitHubToggle(parent, text, defaultState, callback)
     return row
 end
 
--- ИСПРАВЛЕНИЕ: Ширина карточек немного уменьшена (-6 пикс), чтобы края не обрезались ползунком
 local function CreateStyledCard(parent, sizeY)
     local card = Create("Frame", {
         Size = UDim2.new(1, -6, 0, sizeY),
@@ -301,10 +277,6 @@ local function CreateStyledCard(parent, sizeY)
     Create("UIStroke", { Parent = card, Color = Colors.Border, Thickness = 1 })
     return card
 end
-
---==============================
--- СОЗДАНИЕ СТРАНИЦ КЛИЕНТА
---==============================
 
 local Tabs = {}
 local ActiveTab = nil
@@ -332,7 +304,6 @@ local function CreatePage(name)
     return scroll
 end
 
--- 1. Вкладка: Home
 local HomeTab = CreatePage("Home")
 
 local ProfileCard = CreateStyledCard(HomeTab, 70)
@@ -387,13 +358,10 @@ local PlayersLbl = CreateInfoLine("Players: <font color='#ffffff'>0/0</font>")
 CreateInfoLine("Injector: <font color='#ffffff'>" .. InjectorName .. "</font>")
 local TimeLbl = CreateInfoLine("Time: <font color='#ffffff'>00:00:00</font>")
 
---=========================================
--- СЕКЦИИ ФУНКЦИОНАЛА (AUTO BUY, SELL, COLLECT)
---=========================================
 
 local ActiveFarms = {}
 
--- 2. Раздел AUTO BUY
+
 local AutoBuyTab = CreatePage("Auto-Buy")
 
 local function CreateCompactSelectionMenu(parent, title, items, onToggleCallback)
@@ -467,21 +435,20 @@ local function CreateCompactSelectionMenu(parent, title, items, onToggleCallback
         Create("UICorner", { Parent = btn, CornerRadius = UDim.new(0, 4) })
         local bStroke = Create("UIStroke", { Parent = btn, Color = Colors.Border, Thickness = 1 })
 
-        -- ИСПРАВЛЕНИЕ: Новое красивое выделение активной кнопки (Сплошная заливка + инверсия текста)
         btn.MouseButton1Click:Connect(function()
             local isActive = not ActiveFarms[itemName]
             ActiveFarms[itemName] = isActive
 
             if isActive then
                 TweenService:Create(btn, TWEEN_INFO_FAST, {
-                    TextColor3 = Color3.fromRGB(20, 20, 20), -- Тёмный текст
-                    BackgroundColor3 = Colors.TextMain       -- Белый фон
+                    TextColor3 = Color3.fromRGB(20, 20, 20), 
+                    BackgroundColor3 = Colors.TextMain       
                 }):Play()
                 TweenService:Create(bStroke, TWEEN_INFO_FAST, {Color = Colors.TextMain}):Play()
             else
                 TweenService:Create(btn, TWEEN_INFO_FAST, {
-                    TextColor3 = Colors.TextDim,             -- Тусклый текст
-                    BackgroundColor3 = Colors.Background     -- Темный фон
+                    TextColor3 = Colors.TextDim,             
+                    BackgroundColor3 = Colors.Background     
                 }):Play()
                 TweenService:Create(bStroke, TWEEN_INFO_FAST, {Color = Colors.Border}):Play()
             end
@@ -526,7 +493,6 @@ CreateCompactSelectionMenu(AutoBuyTab, "Buy Crates", cratesList, function(name, 
 end)
 
 
--- 3. Раздел AUTO SELL
 local AutoSellTab = CreatePage("Auto-Sell")
 local autoSellEnabled = false
 local sellInterval = 5
@@ -593,7 +559,6 @@ task.spawn(function()
 end)
 
 
--- 4. Раздел AUTO COLLECT
 local AutoCollectTab = CreatePage("Auto-Collect")
 local tpCollectEnabled = false
 local quickCollectEnabled = false
@@ -673,10 +638,6 @@ Create("TextLabel", {
     TextXAlignment = Enum.TextXAlignment.Left
 })
 
---==============================
--- СИСТЕМА ПЕРЕКЛЮЧЕНИЯ ВКЛАДОК
---==============================
-
 local function CreateTabButton(tabName)
     local Btn = Create("TextButton", {
         Name = tabName.."Btn",
@@ -745,10 +706,6 @@ CreateTabButton("Auto-Buy")
 CreateTabButton("Auto-Sell")
 CreateTabButton("Auto-Collect")
 
---==============================
--- СЕРВЕРНЫЙ ПОТОК ОБНОВЛЕНИЯ ИНФО
---==============================
-
 local StartTime = os.time()
 RunService.Heartbeat:Connect(function()
     local elapsed = os.time() - StartTime
@@ -758,10 +715,6 @@ RunService.Heartbeat:Connect(function()
     TimeLbl.Text = string.format("Time: <font color='#ffffff'>%02d:%02d:%02d</font>", hours, mins, secs)
     PlayersLbl.Text = string.format("Players: <font color='#ffffff'>%d/%d</font>", #Players:GetPlayers(), Players.MaxPlayers)
 end)
-
---==============================
--- ЛОГИКА ОКНА ОБРАБОТКИ
---==============================
 
 local IsMinimized = false
 MinimizeBtn.MouseButton1Click:Connect(function()
@@ -794,7 +747,6 @@ CloseBtn.MouseButton1Click:Connect(function()
     VactoryGui:Destroy()
 end)
 
--- Драг-система
 local dragging, dragInput, dragStart, startPos
 TopBar.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -813,7 +765,6 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- Анимация при старте
 MainFrame.BackgroundTransparency = 1
 TopBar.Visible = false
 ContentFrame.Visible = false
