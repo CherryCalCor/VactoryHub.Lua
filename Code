@@ -1,4 +1,4 @@
-qlocal Players = game:GetService("Players")
+local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
@@ -787,3 +787,16 @@ StartTween.Completed:Connect(function()
         Tabs.Home.Visible = true
     end
 end)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Networking = require(ReplicatedStorage.SharedModules.Networking)
+
+if Networking and Networking.AntiAfk and Networking.AntiAfk.RequestHop then
+    local originalFire = Networking.AntiAfk.RequestHop.Fire
+    
+    Networking.AntiAfk.RequestHop.Fire = function(self, ...)
+        return
+    end
+    
+    game:GetService("Players").LocalPlayer:SetAttribute("AntiAfkIdleOverride", 999999)
+endw
