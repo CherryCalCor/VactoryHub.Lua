@@ -799,4 +799,4 @@ if Networking and Networking.AntiAfk and Networking.AntiAfk.RequestHop then
     end
     
     game:GetService("Players").LocalPlayer:SetAttribute("AntiAfkIdleOverride", 999999)
-endw
+end
