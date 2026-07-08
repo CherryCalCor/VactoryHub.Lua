@@ -786,4 +786,4 @@ StartTween.Completed:Connect(function()
         ActiveTab = "Home"
         Tabs.Home.Visible = true
     end
-end)q
+end)
