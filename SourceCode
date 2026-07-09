@@ -1,0 +1,864 @@
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+task.wait(2.5) 
+
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local MarketplaceService = game:GetService("MarketplaceService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local LocalPlayer = Players.LocalPlayer
+
+local InjectorName = "Unknown"
+pcall(function() 
+    if identifyexecutor then 
+        InjectorName = identifyexecutor() 
+    elseif getexecutorname then 
+        InjectorName = getexecutorname() 
+    end 
+end)
+
+local PacketFramework, Networking
+pcall(function()
+    PacketFramework = require(ReplicatedStorage:WaitForChild("SharedModules"):WaitForChild("Packet"))
+    Networking = require(ReplicatedStorage.SharedModules.Networking)
+end)
+
+local TWEEN_INFO_FAST = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+local TWEEN_INFO_SMOOTH = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+
+local Colors = {
+    Background = Color3.fromRGB(15, 15, 15),
+    Surface = Color3.fromRGB(22, 22, 22),
+    ToggleShell = Color3.fromRGB(30, 30, 30),
+    Border = Color3.fromRGB(40, 40, 40),
+    TextMain = Color3.fromRGB(255, 255, 255),
+    TextDim = Color3.fromRGB(150, 150, 150),
+    Active = Color3.fromRGB(200, 200, 200)
+}
+
+local function Create(className, properties)
+    local instance = Instance.new(className)
+    for k, v in pairs(properties) do
+        if k ~= "Parent" then instance[k] = v end
+    end
+    if properties.Parent then instance.Parent = properties.Parent end
+    return instance
+end
+
+local GuiParent = RunService:IsStudio() and LocalPlayer.PlayerGui or CoreGui
+local VactoryGui = Create("ScreenGui", {
+    Name = "VactoryHub_UI",
+    Parent = GuiParent,
+    ResetOnSpawn = false,
+    ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+    IgnoreGuiInset = true
+})
+
+local MainFrame = Create("Frame", {
+    Name = "MainFrame",
+    Parent = VactoryGui,
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    Size = UDim2.new(0, 0, 0, 0),
+    BackgroundColor3 = Colors.Background,
+    ClipsDescendants = true
+})
+Create("UICorner", { Parent = MainFrame, CornerRadius = UDim.new(0, 8) })
+Create("UIStroke", { Parent = MainFrame, Color = Colors.Border, Thickness = 1 })
+
+local SnowContainer = Create("Frame", {
+    Name = "SnowContainer",
+    Parent = MainFrame,
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundTransparency = 1,
+    ZIndex = 0
+})
+
+local RNG = Random.new()
+
+local function SpawnSnowflake()
+    local size = RNG:NextNumber(2, 5)
+    
+    local flake = Create("Frame", {
+        Name = "Snowflake",
+        Parent = SnowContainer,
+        Size = UDim2.new(0, size, 0, size),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = RNG:NextNumber(0.4, 0.8), 
+        BorderSizePixel = 0,
+        ZIndex = 0
+    })
+    Create("UICorner", { Parent = flake, CornerRadius = UDim.new(1, 0) }) 
+
+    local function AnimateFlake()
+
+        flake.Position = UDim2.new(RNG:NextNumber(0, 1), 0, -0.1, 0)
+        
+        local fallDuration = RNG:NextNumber(4, 12) 
+        local targetX = flake.Position.X.Scale + RNG:NextNumber(-0.15, 0.15)
+
+        local tween = TweenService:Create(flake, TweenInfo.new(fallDuration, Enum.EasingStyle.Linear), {
+            Position = UDim2.new(targetX, 0, 1.1, 0) 
+        })
+        
+        tween.Completed:Connect(AnimateFlake)
+        tween:Play()
+    end
+
+    flake.Position = UDim2.new(RNG:NextNumber(0, 1), 0, RNG:NextNumber(-0.1, 1), 0)
+    local initialDuration = RNG:NextNumber(2, 8)
+    local initialTargetX = flake.Position.X.Scale + RNG:NextNumber(-0.1, 0.1)
+
+    local initTween = TweenService:Create(flake, TweenInfo.new(initialDuration, Enum.EasingStyle.Linear), {
+        Position = UDim2.new(initialTargetX, 0, 1.1, 0)
+    })
+    initTween.Completed:Connect(AnimateFlake)
+    initTween:Play()
+end
+
+for i = 1, 25 do
+    SpawnSnowflake()
+end
+
+
+
+local Shadow = Create("ImageLabel", {
+    Name = "Shadow",
+    Parent = MainFrame,
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    Size = UDim2.new(1, 40, 1, 40),
+    BackgroundTransparency = 1,
+    Image = "rbxassetid://6015897843",
+    ImageColor3 = Color3.fromRGB(0, 0, 0),
+    ImageTransparency = 0.5,
+    SliceCenter = Rect.new(49, 49, 450, 450),
+    ScaleType = Enum.ScaleType.Slice,
+    ZIndex = -1
+})
+
+local TopBar = Create("Frame", {
+    Name = "TopBar",
+    Parent = MainFrame,
+    Size = UDim2.new(1, 0, 0, 40),
+    BackgroundTransparency = 1
+})
+
+local TitleContainer = Create("Frame", {
+    Name = "TitleContainer",
+    Parent = TopBar,
+    Position = UDim2.new(0, 15, 0, 0),
+    Size = UDim2.new(0.5, 0, 1, 0),
+    BackgroundTransparency = 1
+})
+Create("UIListLayout", {
+    Parent = TitleContainer,
+    FillDirection = Enum.FillDirection.Horizontal,
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    VerticalAlignment = Enum.VerticalAlignment.Center,
+    Padding = UDim.new(0, 8)
+})
+
+local Title = Create("TextLabel", {
+    Name = "Title",
+    Parent = TitleContainer,
+    Size = UDim2.new(0, 0, 1, 0),
+    AutomaticSize = Enum.AutomaticSize.X,
+    BackgroundTransparency = 1,
+    Text = "Vactory Hub",
+    TextColor3 = Colors.TextMain,
+    Font = Enum.Font.GothamBold,
+    TextSize = 14,
+    LayoutOrder = 1
+})
+
+local VersionBadge = Create("Frame", {
+    Name = "VersionBadge",
+    Parent = TitleContainer,
+    Size = UDim2.new(0, 36, 0, 20),
+    BackgroundColor3 = Colors.Surface,
+    LayoutOrder = 2
+})
+Create("UICorner", { Parent = VersionBadge, CornerRadius = UDim.new(0, 4) })
+Create("UIStroke", { Parent = VersionBadge, Color = Colors.Border, Thickness = 1 })
+Create("TextLabel", {
+    Parent = VersionBadge,
+    Size = UDim2.new(1, 0, 1, 0),
+    BackgroundTransparency = 1,
+    Text = "V0.1",
+    TextColor3 = Colors.TextDim,
+    Font = Enum.Font.GothamSemibold,
+    TextSize = 11
+})
+
+local Controls = Create("Frame", {
+    Name = "Controls",
+    Parent = TopBar,
+    AnchorPoint = Vector2.new(1, 0.5),
+    Position = UDim2.new(1, -15, 0.5, 0),
+    Size = UDim2.new(0, 60, 1, 0),
+    BackgroundTransparency = 1
+})
+Create("UIListLayout", {
+    Parent = Controls,
+    FillDirection = Enum.FillDirection.Horizontal,
+    HorizontalAlignment = Enum.HorizontalAlignment.Right,
+    VerticalAlignment = Enum.VerticalAlignment.Center,
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    Padding = UDim.new(0, 12)
+})
+
+local function CreateControlButton(name, text, layoutOrder)
+    local btn = Create("TextButton", {
+        Name = name,
+        Parent = Controls,
+        Size = UDim2.new(0, 24, 0, 24),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = Colors.TextDim,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 16,
+        LayoutOrder = layoutOrder,
+        AutoButtonColor = false
+    })
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TWEEN_INFO_FAST, {TextColor3 = Colors.TextMain}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TWEEN_INFO_FAST, {TextColor3 = Colors.TextDim}):Play()
+    end)
+    return btn
+end
+
+local MinimizeBtn = CreateControlButton("MinimizeBtn", "—", 1)
+local CloseBtn = CreateControlButton("CloseBtn", "×", 2)
+
+local ContentFrame = Create("Frame", {
+    Name = "ContentFrame",
+    Parent = MainFrame,
+    Position = UDim2.new(0, 0, 0, 40),
+    Size = UDim2.new(1, 0, 1, -40),
+    BackgroundTransparency = 1
+})
+
+local Sidebar = Create("Frame", {
+    Name = "Sidebar",
+    Parent = ContentFrame,
+    Size = UDim2.new(0, 140, 1, 0),
+    BackgroundTransparency = 1
+})
+Create("UIPadding", { Parent = Sidebar, PaddingTop = UDim.new(0, 10), PaddingLeft = UDim.new(0, 15) })
+local SidebarLayout = Create("UIListLayout", {
+    Parent = Sidebar,
+    SortOrder = Enum.SortOrder.LayoutOrder,
+    Padding = UDim.new(0, 5)
+})
+
+local TabContainer = Create("Frame", {
+    Name = "TabContainer",
+    Parent = ContentFrame,
+    Position = UDim2.new(0, 140, 0, 0),
+    Size = UDim2.new(1, -140, 1, 0),
+    BackgroundTransparency = 1
+})
+Create("UIPadding", { Parent = TabContainer, PaddingTop = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), PaddingBottom = UDim.new(0, 15) })
+
+local function CreateGitHubToggle(parent, text, defaultState, callback)
+    local row = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 36),
+        BackgroundTransparency = 1,
+        Parent = parent
+    })
+
+    Create("TextLabel", {
+        Parent = row,
+        Size = UDim2.new(1, -50, 1, 0),
+        BackgroundTransparency = 1,
+        Text = text,
+        TextColor3 = Colors.TextMain,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+
+    local switchShell = Create("Frame", {
+        Parent = row,
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.new(0, 38, 0, 22),
+        BackgroundColor3 = Colors.ToggleShell
+    })
+    Create("UICorner", { Parent = switchShell, CornerRadius = UDim.new(0, 5) })
+    local stroke = Create("UIStroke", { Parent = switchShell, Color = Colors.Border, Thickness = 1 })
+
+    local knob = Create("Frame", {
+        Parent = switchShell,
+        Position = defaultState and UDim2.new(1, -19, 0, 3) or UDim2.new(0, 3, 0, 3),
+        Size = UDim2.new(0, 16, 0, 16),
+        BackgroundColor3 = defaultState and Colors.TextMain or Colors.TextDim
+    })
+    Create("UICorner", { Parent = knob, CornerRadius = UDim.new(0, 4) })
+
+    local clickArea = Create("TextButton", {
+        Parent = switchShell,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        AutoButtonColor = false
+    })
+
+    local state = defaultState
+    clickArea.MouseButton1Click:Connect(function()
+        state = not state
+        local targetPos = state and UDim2.new(1, -19, 0, 3) or UDim2.new(0, 3, 0, 3)
+        local targetColor = state and Colors.TextMain or Colors.TextDim
+        local borderHex = state and Colors.TextMain or Colors.Border
+
+        TweenService:Create(knob, TWEEN_INFO_FAST, {Position = targetPos, BackgroundColor3 = targetColor}):Play()
+        TweenService:Create(stroke, TWEEN_INFO_FAST, {Color = borderHex}):Play()
+        
+        if callback then callback(state) end
+    end)
+
+    return row
+end
+
+local function CreateStyledCard(parent, sizeY)
+    local card = Create("Frame", {
+        Size = UDim2.new(1, -6, 0, sizeY),
+        BackgroundColor3 = Colors.Surface,
+        Parent = parent
+    })
+    Create("UICorner", { Parent = card, CornerRadius = UDim.new(0, 6) })
+    Create("UIStroke", { Parent = card, Color = Colors.Border, Thickness = 1 })
+    return card
+end
+
+local Tabs = {}
+local ActiveTab = nil
+
+local function CreatePage(name)
+    local scroll = Create("ScrollingFrame", {
+        Name = name .. "Tab",
+        Parent = TabContainer,
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 2,
+        ScrollBarImageColor3 = Colors.Border,
+        Visible = false,
+        BorderSizePixel = 0
+    })
+    local layout = Create("UIListLayout", {
+        Parent = scroll,
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Padding = UDim.new(0, 12)
+    })
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        scroll.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 15)
+    end)
+    Tabs[name] = scroll
+    return scroll
+end
+
+local HomeTab = CreatePage("Home")
+
+local ProfileCard = CreateStyledCard(HomeTab, 70)
+local Avatar = Create("ImageLabel", {
+    Name = "Avatar",
+    Parent = ProfileCard,
+    Position = UDim2.new(0, 15, 0.5, 0),
+    AnchorPoint = Vector2.new(0, 0.5),
+    Size = UDim2.new(0, 46, 0, 46),
+    BackgroundColor3 = Colors.Background,
+    Image = Players:GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+})
+Create("UICorner", { Parent = Avatar, CornerRadius = UDim.new(1, 0) })
+Create("UIStroke", { Parent = Avatar, Color = Colors.Border, Thickness = 1 })
+
+Create("TextLabel", {
+    Parent = ProfileCard,
+    Position = UDim2.new(0, 75, 0.5, 0),
+    AnchorPoint = Vector2.new(0, 0.5),
+    Size = UDim2.new(1, -90, 1, 0),
+    BackgroundTransparency = 1,
+    Text = "Welcome, " .. LocalPlayer.Name,
+    TextColor3 = Colors.TextMain,
+    Font = Enum.Font.GothamSemibold,
+    TextSize = 15,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+
+local InfoCard = CreateStyledCard(HomeTab, 110)
+Create("UIPadding", { Parent = InfoCard, PaddingTop = UDim.new(0, 15), PaddingBottom = UDim.new(0, 15), PaddingLeft = UDim.new(0, 15) })
+local InfoLayout = Create("UIListLayout", { Parent = InfoCard, Padding = UDim.new(0, 8) })
+
+local PlaceName = "Unknown Place"
+pcall(function() PlaceName = MarketplaceService:GetProductInfo(game.PlaceId).Name end)
+
+local function CreateInfoLine(textStr)
+    return Create("TextLabel", {
+        Parent = InfoCard,
+        Size = UDim2.new(1, 0, 0, 14),
+        BackgroundTransparency = 1,
+        Text = textStr,
+        TextColor3 = Colors.TextDim,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        RichText = true
+    })
+end
+
+CreateInfoLine("Place: <font color='#ffffff'>" .. PlaceName .. "</font>")
+local PlayersLbl = CreateInfoLine("Players: <font color='#ffffff'>0/0</font>")
+CreateInfoLine("Injector: <font color='#ffffff'>" .. InjectorName .. "</font>")
+local TimeLbl = CreateInfoLine("Time: <font color='#ffffff'>00:00:00</font>")
+
+
+local ActiveFarms = {}
+
+
+local AutoBuyTab = CreatePage("Auto-Buy")
+
+local function CreateCompactSelectionMenu(parent, title, items, onToggleCallback)
+    local categoryFrame = CreateStyledCard(parent, 40)
+    categoryFrame.AutomaticSize = Enum.AutomaticSize.Y
+    Create("UIPadding", { Parent = categoryFrame, PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) })
+
+    local header = Create("TextButton", {
+        Parent = categoryFrame,
+        Size = UDim2.new(1, 0, 0, 20),
+        BackgroundTransparency = 1,
+        Text = title,
+        TextColor3 = Colors.TextMain,
+        Font = Enum.Font.GothamBold,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left
+    })
+    
+    local arrow = Create("TextLabel", {
+        Parent = header,
+        AnchorPoint = Vector2.new(1, 0.5),
+        Position = UDim2.new(1, 0, 0.5, 0),
+        Size = UDim2.new(0, 20, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "▼",
+        TextColor3 = Colors.TextDim,
+        Font = Enum.Font.GothamMedium,
+        TextSize = 12
+    })
+
+    local grid = Create("Frame", {
+        Parent = categoryFrame,
+        Position = UDim2.new(0, 0, 0, 30),
+        Size = UDim2.new(1, 0, 0, 0),
+        BackgroundTransparency = 1,
+        Visible = false,
+        ClipsDescendants = true
+    })
+    local gridLayout = Create("UIGridLayout", {
+        Parent = grid,
+        CellSize = UDim2.new(0, 130, 0, 30),
+        CellPadding = UDim2.new(0, 8, 0, 8),
+        SortOrder = Enum.SortOrder.Name
+    })
+    
+    gridLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        if grid.Visible then
+            grid.Size = UDim2.new(1, 0, 0, gridLayout.AbsoluteContentSize.Y)
+        end
+    end)
+
+    local isExpanded = false
+    header.MouseButton1Click:Connect(function()
+        isExpanded = not isExpanded
+        grid.Visible = isExpanded
+        arrow.Text = isExpanded and "▲" or "▼"
+        grid.Size = UDim2.new(1, 0, 0, isExpanded and gridLayout.AbsoluteContentSize.Y or 0)
+    end)
+
+    for _, itemName in ipairs(items) do
+        local btn = Create("TextButton", {
+            Name = itemName,
+            Parent = grid,
+            BackgroundColor3 = Colors.Background,
+            Text = itemName,
+            TextColor3 = Colors.TextDim,
+            Font = Enum.Font.GothamMedium,
+            TextSize = 12,
+            AutoButtonColor = false
+        })
+        Create("UICorner", { Parent = btn, CornerRadius = UDim.new(0, 4) })
+        local bStroke = Create("UIStroke", { Parent = btn, Color = Colors.Border, Thickness = 1 })
+
+        btn.MouseButton1Click:Connect(function()
+            local isActive = not ActiveFarms[itemName]
+            ActiveFarms[itemName] = isActive
+
+            if isActive then
+                TweenService:Create(btn, TWEEN_INFO_FAST, {
+                    TextColor3 = Color3.fromRGB(20, 20, 20), 
+                    BackgroundColor3 = Colors.TextMain       
+                }):Play()
+                TweenService:Create(bStroke, TWEEN_INFO_FAST, {Color = Colors.TextMain}):Play()
+            else
+                TweenService:Create(btn, TWEEN_INFO_FAST, {
+                    TextColor3 = Colors.TextDim,             
+                    BackgroundColor3 = Colors.Background     
+                }):Play()
+                TweenService:Create(bStroke, TWEEN_INFO_FAST, {Color = Colors.Border}):Play()
+            end
+            if onToggleCallback then onToggleCallback(itemName, isActive) end
+        end)
+    end
+end
+
+local seedsList = {"Carrot", "Strawberry", "Blueberry", "Tulip", "Tomato", "Apple", "Bamboo", "Corn", "Cactus", "Mushroom", "Pineapple", "Green Bean", "Banana", "Grape", "Coconut", "Mango", "Dragon Fruit", "Acorn", "Cherry", "Sunflower", "Venus Fly Trap", "Pomegranate", "Poison Apple", "Moon Bloom", "Dragon's Breath"}
+local gearsList = {"Common Watering Can", "Common Sprinkler", "Sign", "Uncommon Sprinkler", "Trowel", "Rare Sprinkler", "Jump Mushroom", "Speed Mushroom", "Lantern", "Shrink Mushroom", "Supersize Mushroom", "Gnome", "Flashbang", "Basic Pot", "Legendary Sprinkler", "Invisibility Mushroom", "Teleporter", "Wheelbarrow", "Super Watering Can", "Super Sprinkler"}
+local cratesList = {"Ladder Crate", "Bench Crate", "Light Crate", "Sign Crate", "Arch Crate", "Roleplay Crate", "Bridge Crate", "Spring Crate", "Seesaw Crate", "Conveyor Crate", "Owner Door Crate", "Bear Trap Crate", "Fence Crate", "Teleporter Pad Crate"}
+
+local purchaseSeedPacket, purchaseGearPacket, purchaseCratePacket
+pcall(function()
+    purchaseSeedPacket = PacketFramework("PurchaseSeed")
+    purchaseGearPacket = PacketFramework("PurchaseGear")
+    purchaseCratePacket = PacketFramework("PurchaseCrate")
+end)
+
+CreateCompactSelectionMenu(AutoBuyTab, "Buy Seeds", seedsList, function(name, state)
+    if state and purchaseSeedPacket then
+        task.spawn(function()
+            while ActiveFarms[name] do pcall(function() purchaseSeedPacket:Fire(name) end) task.wait(0.5) end
+        end)
+    end
+end)
+
+CreateCompactSelectionMenu(AutoBuyTab, "Buy Gears", gearsList, function(name, state)
+    if state and purchaseGearPacket then
+        task.spawn(function()
+            while ActiveFarms[name] do pcall(function() purchaseGearPacket:Fire(name, 1) end) task.wait(0.5) end
+        end)
+    end
+end)
+
+CreateCompactSelectionMenu(AutoBuyTab, "Buy Crates", cratesList, function(name, state)
+    if state and purchaseCratePacket then
+        task.spawn(function()
+            while ActiveFarms[name] do pcall(function() purchaseCratePacket:Fire(name, 1) end) task.wait(0.5) end
+        end)
+    end
+end)
+
+
+local AutoSellTab = CreatePage("Auto-Sell")
+local autoSellEnabled = false
+local sellInterval = 5
+local sellPacket
+pcall(function() sellPacket = PacketFramework("SellAll") end)
+
+local SellControlCard = CreateStyledCard(AutoSellTab, 95)
+Create("UIPadding", { Parent = SellControlCard, PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) })
+
+CreateGitHubToggle(SellControlCard, "Auto-Sell Status", false, function(state) autoSellEnabled = state end)
+
+local InputRow = Create("Frame", {
+    Parent = SellControlCard,
+    Position = UDim2.new(0, 0, 0, 42),
+    Size = UDim2.new(1, 0, 0, 30),
+    BackgroundTransparency = 1
+})
+Create("TextLabel", {
+    Parent = InputRow,
+    Size = UDim2.new(0, 120, 1, 0),
+    BackgroundTransparency = 1,
+    Text = "Sell Interval (sec):",
+    TextColor3 = Colors.TextDim,
+    Font = Enum.Font.GothamMedium,
+    TextSize = 13,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+local DelayInput = Create("TextBox", {
+    Parent = InputRow,
+    Position = UDim2.new(0, 130, 0, 0),
+    Size = UDim2.new(0, 60, 1, 0),
+    BackgroundColor3 = Colors.Background,
+    TextColor3 = Colors.TextMain,
+    Font = Enum.Font.GothamMedium,
+    TextSize = 13,
+    Text = tostring(sellInterval),
+    ClearTextOnFocus = false
+})
+Create("UICorner", { Parent = DelayInput, CornerRadius = UDim.new(0, 4) })
+Create("UIStroke", { Parent = DelayInput, Color = Colors.Border, Thickness = 1 })
+DelayInput.FocusLost:Connect(function()
+    local val = tonumber(DelayInput.Text)
+    if val and val > 0 then sellInterval = val else DelayInput.Text = tostring(sellInterval) end
+end)
+
+local SellHintCard = CreateStyledCard(AutoSellTab, 50)
+Create("TextLabel", {
+    Parent = SellHintCard,
+    Size = UDim2.new(1, -20, 1, -10),
+    Position = UDim2.new(0, 10, 0, 5),
+    BackgroundTransparency = 1,
+    Text = "Enter the number of seconds after which Auto-sell will be activated.\nВведите количество секунд через которое продажа будет активироваться.",
+    TextColor3 = Colors.TextDim,
+    Font = Enum.Font.Gotham,
+    TextSize = 11,
+    TextWrapped = true,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+
+task.spawn(function()
+    while true do
+        if autoSellEnabled and sellPacket then pcall(function() sellPacket:Fire() end) task.wait(sellInterval) else task.wait(0.5) end
+    end
+end)
+
+
+local AutoCollectTab = CreatePage("Auto-Collect")
+local tpCollectEnabled = false
+local quickCollectEnabled = false
+local CollectFruit, plantsFolder
+pcall(function()
+    CollectFruit = Networking.Garden.CollectFruit
+    plantsFolder = workspace.Gardens.Plot1.Plants
+end)
+
+local CollectControlCard = CreateStyledCard(AutoCollectTab, 85)
+Create("UIPadding", { Parent = CollectControlCard, PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) })
+Create("UIListLayout", { Parent = CollectControlCard, Padding = UDim.new(0, 6) })
+
+CreateGitHubToggle(CollectControlCard, "Teleport Collect", false, function(state)
+    tpCollectEnabled = state
+    if state then
+        task.spawn(function()
+            while tpCollectEnabled do
+                local char = LocalPlayer.Character
+                local hrp = char and char:FindFirstChild("HumanoidRootPart")
+                if hrp and plantsFolder then
+                    for _, plant in pairs(plantsFolder:GetChildren()) do
+                        if not tpCollectEnabled then break end
+                        local fruitsFolder = plant:FindFirstChild("Fruits")
+                        if fruitsFolder then
+                            for _, fruit in pairs(fruitsFolder:GetChildren()) do
+                                hrp.CFrame = plant:GetPivot()
+                                local fruitId = string.split(fruit.Name, "_")[3]
+                                if fruitId and CollectFruit then
+                                    task.wait(0.2)
+                                    pcall(function() CollectFruit:Fire(plant:GetAttribute("PlantId"), fruitId) end)
+                                end
+                            end
+                        end
+                    end
+                end
+                task.wait(1)
+            end
+        end)
+    end
+end)
+
+CreateGitHubToggle(CollectControlCard, "Quick Collection", false, function(state)
+    quickCollectEnabled = state
+    if state then
+        task.spawn(function()
+            while quickCollectEnabled do
+                if plantsFolder and CollectFruit then
+                    for _, plant in pairs(plantsFolder:GetChildren()) do
+                        if not quickCollectEnabled then break end
+                        local fruitsFolder = plant:FindFirstChild("Fruits")
+                        if fruitsFolder then
+                            for _, fruit in pairs(fruitsFolder:GetChildren()) do
+                                local fruitId = string.split(fruit.Name, "_")[3]
+                                if fruitId then pcall(function() CollectFruit:Fire(plant:GetAttribute("PlantId"), fruitId) end) end
+                            end
+                        end
+                    end
+                end
+                task.wait(0.2)
+            end
+        end)
+    end
+end)
+
+local CollectHintCard = CreateStyledCard(AutoCollectTab, 55)
+Create("TextLabel", {
+    Parent = CollectHintCard,
+    Size = UDim2.new(1, -20, 1, -10),
+    Position = UDim2.new(0, 10, 0, 5),
+    BackgroundTransparency = 1,
+    Text = "When enabling Quick Collection, it is recommended to stand near the garden bed to ensure everything works correctly.\nПри включении Quick Collection рекомендуется стоять возле грядки.",
+    TextColor3 = Colors.TextDim,
+    Font = Enum.Font.Gotham,
+    TextSize = 11,
+    TextWrapped = true,
+    TextXAlignment = Enum.TextXAlignment.Left
+})
+
+local function CreateTabButton(tabName)
+    local Btn = Create("TextButton", {
+        Name = tabName.."Btn",
+        Parent = Sidebar,
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundTransparency = 1,
+        Text = tabName,
+        TextColor3 = Colors.TextDim,
+        Font = Enum.Font.GothamSemibold,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        AutoButtonColor = false
+    })
+    
+    local Indicator = Create("Frame", {
+        Name = "Indicator",
+        Parent = Btn,
+        AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0, -15, 0.5, 0),
+        Size = UDim2.new(0, 2, 0, 0),
+        BackgroundColor3 = Colors.TextMain,
+        BackgroundTransparency = 1
+    })
+    Create("UICorner", { Parent = Indicator, CornerRadius = UDim.new(1, 0) })
+
+    Btn.MouseEnter:Connect(function()
+        if ActiveTab ~= tabName then TweenService:Create(Btn, TWEEN_INFO_FAST, {TextColor3 = Color3.fromRGB(210, 210, 210)}):Play() end
+    end)
+    Btn.MouseLeave:Connect(function()
+        if ActiveTab ~= tabName then TweenService:Create(Btn, TWEEN_INFO_FAST, {TextColor3 = Colors.TextDim}):Play() end
+    end)
+
+    Btn.MouseButton1Click:Connect(function()
+        if ActiveTab == tabName then return end
+        
+        for _, child in pairs(Sidebar:GetChildren()) do
+            if child:IsA("TextButton") and child.Name ~= tabName.."Btn" then
+                TweenService:Create(child, TWEEN_INFO_SMOOTH, {TextColor3 = Colors.TextDim}):Play()
+                TweenService:Create(child.Indicator, TWEEN_INFO_SMOOTH, {Size = UDim2.new(0, 2, 0, 0), BackgroundTransparency = 1}):Play()
+            end
+        end
+
+        if ActiveTab and Tabs[ActiveTab] then
+            local oldTab = Tabs[ActiveTab]
+            local outTween = TweenService:Create(oldTab, TWEEN_INFO_FAST, {Position = UDim2.new(0, 0, 0, 10)})
+            outTween:Play()
+            outTween.Completed:Wait()
+            oldTab.Visible = false
+        end
+
+        ActiveTab = tabName
+        TweenService:Create(Btn, TWEEN_INFO_SMOOTH, {TextColor3 = Colors.TextMain}):Play()
+        TweenService:Create(Indicator, TWEEN_INFO_SMOOTH, {Size = UDim2.new(0, 3, 0, 18), BackgroundTransparency = 0}):Play()
+
+        local targetTab = Tabs[tabName]
+        if targetTab then
+            targetTab.Position = UDim2.new(0, 0, 0, 10)
+            targetTab.Visible = true
+            TweenService:Create(targetTab, TWEEN_INFO_SMOOTH, {Position = UDim2.new(0, 0, 0, 0)}):Play()
+        end
+    end)
+end
+
+CreateTabButton("Home")
+CreateTabButton("Auto-Buy")
+CreateTabButton("Auto-Sell")
+CreateTabButton("Auto-Collect")
+
+local StartTime = os.time()
+RunService.Heartbeat:Connect(function()
+    local elapsed = os.time() - StartTime
+    local hours = math.floor(elapsed / 3600)
+    local mins = math.floor((elapsed % 3600) / 60)
+    local secs = elapsed % 60
+    TimeLbl.Text = string.format("Time: <font color='#ffffff'>%02d:%02d:%02d</font>", hours, mins, secs)
+    PlayersLbl.Text = string.format("Players: <font color='#ffffff'>%d/%d</font>", #Players:GetPlayers(), Players.MaxPlayers)
+end)
+
+local IsMinimized = false
+MinimizeBtn.MouseButton1Click:Connect(function()
+    IsMinimized = not IsMinimized
+    if IsMinimized then
+        TweenService:Create(MainFrame, TWEEN_INFO_SMOOTH, {Size = UDim2.new(0, 600, 0, 40)}):Play()
+        ContentFrame.Visible = false
+    else
+        TweenService:Create(MainFrame, TWEEN_INFO_SMOOTH, {Size = UDim2.new(0, 600, 0, 380)}):Play()
+        ContentFrame.Visible = true
+    end
+end)
+
+CloseBtn.MouseButton1Click:Connect(function()
+    ActiveFarms = {}
+    autoSellEnabled = false
+    tpCollectEnabled = false
+    quickCollectEnabled = false
+    
+    local closeAnim = TweenService:Create(MainFrame, TWEEN_INFO_SMOOTH, {Size = UDim2.new(0, 550, 0, 330), BackgroundTransparency = 1})
+    for _, child in pairs(MainFrame:GetDescendants()) do
+        if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("ImageLabel") or child:IsA("UIStroke") then
+            TweenService:Create(child, TWEEN_INFO_FAST, {Transparency = 1}):Play()
+        elseif child:IsA("Frame") then
+            TweenService:Create(child, TWEEN_INFO_FAST, {BackgroundTransparency = 1}):Play()
+        end
+    end
+    closeAnim:Play()
+    closeAnim.Completed:Wait()
+    VactoryGui:Destroy()
+end)
+
+local dragging, dragInput, dragStart, startPos
+TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = MainFrame.Position
+        input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+    end
+end)
+TopBar.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        local targetPos = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        TweenService:Create(MainFrame, TweenInfo.new(0.08, Enum.EasingStyle.Linear), {Position = targetPos}):Play()
+    end
+end)
+
+MainFrame.BackgroundTransparency = 1
+TopBar.Visible = false
+ContentFrame.Visible = false
+
+local StartTween = TweenService:Create(MainFrame, TWEEN_INFO_SMOOTH, {
+    Size = UDim2.new(0, 600, 0, 380),
+    BackgroundTransparency = 0
+})
+StartTween:Play()
+StartTween.Completed:Connect(function()
+    TopBar.Visible = true
+    ContentFrame.Visible = true
+    
+    local HomeBtn = Sidebar:FindFirstChild("HomeBtn")
+    if HomeBtn then
+        HomeBtn.Indicator.Size = UDim2.new(0, 3, 0, 18)
+        HomeBtn.Indicator.BackgroundTransparency = 0
+        HomeBtn.TextColor3 = Colors.TextMain
+        ActiveTab = "Home"
+        Tabs.Home.Visible = true
+    end
+end)
+
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Networking = require(ReplicatedStorage.SharedModules.Networking)
+
+if Networking and Networking.AntiAfk and Networking.AntiAfk.RequestHop then
+    local originalFire = Networking.AntiAfk.RequestHop.Fire
+    
+    Networking.AntiAfk.RequestHop.Fire = function(self, ...)
+        return
+    end
+    
+    game:GetService("Players").LocalPlayer:SetAttribute("AntiAfkIdleOverride", 999999)
+end
