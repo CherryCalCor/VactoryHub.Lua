@@ -23,7 +23,33 @@ pcall(function()
     end 
 end)
 
-local PacketFramework
+local function GetOriginalPacketRegistry()
+    if getgc and debug.getupvalue then
+        for _, v in pairs(getgc()) do
+            if type(v) == "function" then
+                local src = debug.info(v, "s")
+                if src and src:find("Packet") then
+                    local idx = 1
+                    while true do
+                        local name, val = debug.getupvalue(v, idx)
+                        if not name then break end
+                        if type(val) == "table" then
+
+                            if val.PurchaseSeed or val.SellAll or val.CollectFruit or val.PurchaseGear then
+                                return val
+                            end
+                        end
+                        idx = idx + 1
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local originalRegistry = GetOriginalPacketRegistry()
+
 local function GetPacketFramework()
     if getgc then
         for _, v in pairs(getgc(true)) do
@@ -43,7 +69,36 @@ local function GetPacketFramework()
     return nil
 end
 
-PacketFramework = GetPacketFramework()
+local PacketFramework = GetPacketFramework()
+
+
+local function GetPacket(name, ...)
+
+    if originalRegistry and originalRegistry[name] then
+        return originalRegistry[name]
+    end
+
+    if PacketFramework then
+        local success, pkt = pcall(function()
+            return PacketFramework(name, ...)
+        end)
+        if success and pkt then
+            return pkt
+        end
+    end
+    return nil
+end
+
+local purchaseSeedPacket = GetPacket("PurchaseSeed", PacketFramework and PacketFramework.String)
+local purchaseGearPacket = GetPacket("PurchaseGear", PacketFramework and PacketFramework.String, PacketFramework and PacketFramework.NumberU16)
+local purchaseCratePacket = GetPacket("PurchaseCrate", PacketFramework and PacketFramework.String, PacketFramework and PacketFramework.NumberU16)
+local sellPacket         = GetPacket("SellAll")
+local CollectFruit       = GetPacket("CollectFruit", PacketFramework and PacketFramework.String, PacketFramework and PacketFramework.String)
+
+local plantsFolder
+pcall(function()
+    plantsFolder = workspace.Gardens.Plot1.Plants
+end)
 
 local TWEEN_INFO_FAST = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TWEEN_INFO_SMOOTH = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
