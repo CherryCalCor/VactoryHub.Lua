@@ -22,7 +22,7 @@ pcall(function()
         InjectorName = getexecutorname() 
     end 
 end)
-a
+
 local PacketFramework
 local function GetPacketFramework()
     if getgc then
