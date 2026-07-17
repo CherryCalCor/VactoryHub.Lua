@@ -71,17 +71,12 @@ end
 
 local PacketFramework = GetPacketFramework()
 
-
 local function GetPacket(name, ...)
-
     if originalRegistry and originalRegistry[name] then
         return originalRegistry[name]
     end
-
     if PacketFramework then
-        local success, pkt = pcall(function()
-            return PacketFramework(name, ...)
-        end)
+        local success, pkt = pcall(PacketFramework, name, ...)
         if success and pkt then
             return pkt
         end
