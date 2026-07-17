@@ -22,12 +22,28 @@ pcall(function()
         InjectorName = getexecutorname() 
     end 
 end)
+a
+local PacketFramework
+local function GetPacketFramework()
+    if getgc then
+        for _, v in pairs(getgc(true)) do
+            if type(v) == "table" and rawget(v, "Settings") and type(v.Settings) == "table" and v.Settings.UseBuffers ~= nil then
+                return v
+            end
+        end
+    end
 
-local PacketFramework, Networking
-pcall(function()
-    PacketFramework = require(ReplicatedStorage:WaitForChild("SharedModules"):WaitForChild("Packet"))
-    Networking = require(ReplicatedStorage.SharedModules.Networking)
-end)
+    local req = (getrenv and getrenv().require) or require
+    local success, res = pcall(function()
+        return req(ReplicatedStorage:WaitForChild("SharedModules"):WaitForChild("Packet"))
+    end)
+    if success then
+        return res
+    end
+    return nil
+end
+
+PacketFramework = GetPacketFramework()
 
 local TWEEN_INFO_FAST = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
 local TWEEN_INFO_SMOOTH = TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
@@ -97,7 +113,6 @@ local function SpawnSnowflake()
     Create("UICorner", { Parent = flake, CornerRadius = UDim.new(1, 0) }) 
 
     local function AnimateFlake()
-
         flake.Position = UDim2.new(RNG:NextNumber(0, 1), 0, -0.1, 0)
         
         local fallDuration = RNG:NextNumber(4, 12) 
@@ -125,8 +140,6 @@ end
 for i = 1, 25 do
     SpawnSnowflake()
 end
-
-
 
 local Shadow = Create("ImageLabel", {
     Name = "Shadow",
@@ -420,9 +433,7 @@ local PlayersLbl = CreateInfoLine("Players: <font color='#ffffff'>0/0</font>")
 CreateInfoLine("Injector: <font color='#ffffff'>" .. InjectorName .. "</font>")
 local TimeLbl = CreateInfoLine("Time: <font color='#ffffff'>00:00:00</font>")
 
-
 local ActiveFarms = {}
-
 
 local AutoBuyTab = CreatePage("Auto-Buy")
 
@@ -524,11 +535,13 @@ local gearsList = {"Common Watering Can", "Common Sprinkler", "Sign", "Uncommon 
 local cratesList = {"Ladder Crate", "Bench Crate", "Light Crate", "Sign Crate", "Arch Crate", "Roleplay Crate", "Bridge Crate", "Spring Crate", "Seesaw Crate", "Conveyor Crate", "Owner Door Crate", "Bear Trap Crate", "Fence Crate", "Teleporter Pad Crate"}
 
 local purchaseSeedPacket, purchaseGearPacket, purchaseCratePacket
-pcall(function()
-    purchaseSeedPacket = PacketFramework("PurchaseSeed")
-    purchaseGearPacket = PacketFramework("PurchaseGear")
-    purchaseCratePacket = PacketFramework("PurchaseCrate")
-end)
+if PacketFramework then
+    pcall(function()
+        purchaseSeedPacket = PacketFramework("PurchaseSeed")
+        purchaseGearPacket = PacketFramework("PurchaseGear")
+        purchaseCratePacket = PacketFramework("PurchaseCrate")
+    end)
+end
 
 CreateCompactSelectionMenu(AutoBuyTab, "Buy Seeds", seedsList, function(name, state)
     if state and purchaseSeedPacket then
@@ -554,12 +567,14 @@ CreateCompactSelectionMenu(AutoBuyTab, "Buy Crates", cratesList, function(name, 
     end
 end)
 
-
 local AutoSellTab = CreatePage("Auto-Sell")
 local autoSellEnabled = false
 local sellInterval = 5
 local sellPacket
-pcall(function() sellPacket = PacketFramework("SellAll") end)
+
+if PacketFramework then
+    pcall(function() sellPacket = PacketFramework("SellAll") end)
+end
 
 local SellControlCard = CreateStyledCard(AutoSellTab, 95)
 Create("UIPadding", { Parent = SellControlCard, PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) })
@@ -620,15 +635,17 @@ task.spawn(function()
     end
 end)
 
-
 local AutoCollectTab = CreatePage("Auto-Collect")
 local tpCollectEnabled = false
 local quickCollectEnabled = false
 local CollectFruit, plantsFolder
-pcall(function()
-    CollectFruit = Networking.Garden.CollectFruit
-    plantsFolder = workspace.Gardens.Plot1.Plants
-end)
+
+if PacketFramework then
+    pcall(function()
+        CollectFruit = PacketFramework("CollectFruit")
+        plantsFolder = workspace.Gardens.Plot1.Plants
+    end)
+end
 
 local CollectControlCard = CreateStyledCard(AutoCollectTab, 85)
 Create("UIPadding", { Parent = CollectControlCard, PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 12), PaddingRight = UDim.new(0, 12) })
@@ -850,15 +867,12 @@ StartTween.Completed:Connect(function()
     end
 end)
 
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Networking = require(ReplicatedStorage.SharedModules.Networking)
-
-if Networking and Networking.AntiAfk and Networking.AntiAfk.RequestHop then
-    local originalFire = Networking.AntiAfk.RequestHop.Fire
-    
-    Networking.AntiAfk.RequestHop.Fire = function(self, ...)
-        return
-    end
-    
-    game:GetService("Players").LocalPlayer:SetAttribute("AntiAfkIdleOverride", 999999)
+local RequestHop = PacketFramework and PacketFramework("RequestHop")
+if RequestHop then
+    pcall(function()
+        RequestHop.Fire = function(self, ...)
+            return
+        end
+        game:GetService("Players").LocalPlayer:SetAttribute("AntiAfkIdleOverride", 999999)
+    end)
 end
